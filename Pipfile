@@ -1,0 +1,19 @@
+[[source]]
+name = "pypi"
+url = "http://mirrors.aliyun.com/pypi/simple/"
+verify_ssl = false
+
+[packages]
+flask = "==1.1.2"
+requests = "==2.5.1"
+pydantic = "==1.7.3"
+pyrsistent = "==0.17.3"
+pytest = "==6.2.1"
+pypinyin = "==0.53.0"
+flasgger = "==0.9.7.1"
+gunicorn = "==20.1.0"
+
+[dev-packages]
+
+[requires]
+python_version = "3.6"

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>查询城市未来7天天气</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+            /* 设置整个页面的body样式 */
+            body, html {
+                height: 100%;
+                margin: 0;
+                display: flex;
+                flex-direction: column;
+                justify-content: center; /* 垂直居中 */
+                align-items: center; /* 水平居中 */
+            }
+
+            .input-width {
+                width: 300px; /* 设置宽度为300像素 */
+            }
+
+            /* 设置容器样式 */
+            .containerInput {
+                width: 1000px; /* 容器宽度，根据需要调整 */
+                height: 100px;
+                display: flex;
+                justify-content: center; /* 垂直居中容器内的内容 */
+                align-items: center; /* 水平居中容器内的内容 */
+                border: none;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
+            }
+
+            /* 设置容器样式 */
+            .container-radio {
+                height: 100px; /* 设置div的高度 */
+                display: flex;
+                align-items: center;
+                justify-content: center; /* 水平居中 */
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
+            }
+
+            .container-radio input[type="radio"],
+            .container-radio label {
+                display: inline-block;
+                vertical-align: middle;
+            }
+
+            /* 设置容器样式 */
+            .containerWeather {
+                flex: 1; /* 自适应剩余空间 */
+                width: 1000px; /* 容器宽度，根据需要调整 */
+                display: flex;
+                justify-content: center; /* 垂直居中容器内的内容 */
+                align-items: center; /* 水平居中容器内的内容 */
+                border: none;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
+            }
+
+            /* 设置每个div的高度 */
+            .top {
+                height: 5%; /* 可以根据需要调整高度 */
+                width: 1000px; /* 宽度占满容器 */
+            }
+
+             /*弃用*/
+            .middle {
+                height: 10%; /* 可以根据需要调整高度 */
+                width: 1000px; /* 宽度占满容器 */
+            }
+
+            /* 设置中间和底部div自适应高度 */
+            .bottom {
+                flex: 1; /* 自适应剩余空间 */
+                overflow: auto; /* 如果内容超出可视区域，显示滚动条 */
+            }
+
+        </style>
+    </head>
+
+    <body>
+        <div class="containerInput top">
+            <input type="text" class="input-width" placeholder="请输入城市名称，以市字结尾，如北京市" id="cityName" width="300px">&nbsp&nbsp
+            <button class="btn btn-primary" onclick="queryCity()">查询</button>&nbsp&nbsp
+            <button class="btn btn-primary" onclick="reset()">重置</button>&nbsp&nbsp
+        </div>
+
+        <div class="container-radio middle" style="display: none;" id="cityDiv"></div>
+
+        <div style="display: none;" id="weatherDiv"></div>
+
+        <script>
+            document.getElementById('cityDiv').addEventListener('change', function(event) {
+                console.log("cityDiv change")
+                var target = event.target;
+                if (target && target.tagName === 'INPUT' && target.type === 'radio') {
+                    if (target.checked) {
+                        console.log('选中的单选按钮值:', target.value);
+                        queryWeather(target.value)
+                    }
+                }
+            });
+
+            function isAllChinese(str) {
+                const regex = /^[\u4e00-\u9fa5]+$/;
+                return regex.test(str);
+            }
+
+            function isValidCityName(str) {
+                var regex = /^[^市]*市$/;
+                return regex.test(str);
+            }
+            function queryCity() {
+                console.log("enter queryCity")
+
+                const cityName = document.getElementById('cityName').value;
+
+                if (cityName === '' || !isAllChinese(cityName) || !isValidCityName(cityName)) {
+                    alert('城市名不能为空，必须为全中文并且以市字结尾！');
+                    return false;
+                }
+
+                document.getElementById('weatherDiv').style.display = 'none';
+
+                var cityDiv = document.getElementById('cityDiv');
+
+                $.ajax({
+                    type: 'GET',
+                    url: '/api/v1/city/' + cityName,
+                    success: function(res) {
+                        if ('message' in res && res.message == "请求成功" && res.data.cityItems.length > 0) {
+                            let innerHTML = `<div class="container-radio " id="cityDiv">`
+                            res.data.cityItems.forEach(function (obj) {
+                                innerHTML += `<input type="radio" value="${obj.city_id}" name="city"><label>${obj.city_name}</label><br>`
+                            });
+                            innerHTML += "</div>"
+                            cityDiv.innerHTML = innerHTML
+                        } else {
+                            cityDiv.innerHTML = `<div class="container-radio " id="cityDiv">没有查询到跟"${cityName}"相关的城市</div>`
+                            document.getElementById('weatherDiv').style.display = 'none';
+                        }
+                        cityDiv.style.display = 'block';
+                    },
+                    error: function(error) {
+                        console.log("查询城市发生异常！")
+                        cityDiv.innerHTML =    `<div class="container-radio " id="cityDiv">查询城市发生异常!</div>`
+                        cityDiv.style.display = 'block';
+                        document.getElementById('weatherDiv').style.display = 'none';
+                    }
+                });
+
+                document.getElementById('cityName').value = ''
+            }
+
+            function reset() {
+                document.getElementById('cityDiv').style.display = 'none';
+                document.getElementById('weatherDiv').style.display = 'none';
+            }
+            function queryWeather(city_location) {
+                var weatherDiv = document.getElementById('weatherDiv');
+
+                $.ajax({
+                    type: 'GET',
+                    url: '/api/v1/weather/' + city_location,
+                    success: function(res) {
+                        if ('message' in res && res.message == "请求成功" && res.data.weatherItems.length > 0) {
+                            let innerHTML = `<div class="containerWeather bottom"  id="weatherDiv">`
+                            res.data.weatherItems.forEach(function (obj) {
+                                const v = obj.fxDate + ":<br>" + obj.temperature + "<br>&nbsp&nbsp" + obj.sunlight
+                                innerHTML += `<ul>${v} </ul><br>`
+                            });
+                            innerHTML += "</div>"
+                            weatherDiv.innerHTML = innerHTML
+                        }else {
+                            weatherDiv.innerHTML = `<div class="containerWeather bottom" id="weatherDiv">没有查询到相关的城市天气!</div>`
+                        }
+                        weatherDiv.style.display = 'block';
+                    },
+                    error: function(error) {
+                        console.log("查询城市天气发生异常！")
+                        weatherDiv.innerHTML = `<div class="containerWeather bottom" id="weatherDiv">查询城市天气发生异常!</div>`
+                        weatherDiv.style.display = 'block';
+                    }
+                });
+            }
+
+        </script>
+
+    </body>
+
+</html>
